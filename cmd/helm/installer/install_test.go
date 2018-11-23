@@ -193,6 +193,62 @@ func TestSecretManifest(t *testing.T) {
 	}
 }
 
+func TestFindEnv(t *testing.T) {
+	var testCases = []struct {
+		scenario      string
+		givenEnvs     []v1.EnvVar
+		givenFindName string
+		expectedEnv   v1.EnvVar
+		expectedBool  bool
+	}{
+		{"find name that exists", []v1.EnvVar{v1.EnvVar{Name: "hello"}}, "hello", v1.EnvVar{Name: "hello"}, true},
+		{"find name that does not exist", []v1.EnvVar{v1.EnvVar{Name: "hello2"}}, "hello", v1.EnvVar{}, false},
+		{"find name that exists from multiple variables", []v1.EnvVar{v1.EnvVar{Name: "hello2"}, v1.EnvVar{Name: "hello"}}, "hello2", v1.EnvVar{Name: "hello2"}, true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.scenario, func(t *testing.T) {
+			actualEnvVar, actualBool := findEnv(tc.givenEnvs, tc.givenFindName)
+
+			if tc.expectedEnv != actualEnvVar {
+				t.Errorf("expected env to be %q but got %q", tc.expectedEnv, actualEnvVar)
+			}
+
+			if tc.expectedBool != actualBool {
+				t.Errorf("expected boolean to be %v but got %v", tc.expectedBool, actualBool)
+			}
+
+		})
+
+	}
+
+}
+
+func TestUpdateEnv(t *testing.T) {
+
+	var testCases = []struct {
+		scenario             string
+		givenExistingEnvVars []v1.EnvVar
+		givenNewEnvVars      []v1.EnvVar
+		givenRemoveStrings   []string
+		expectedEnvVars      []v1.EnvVar
+	}{
+		{"add new env vars during update", []v1.EnvVar{{Name: "TILLER_NAMESPACE", Value: "kube-system"}}, []v1.EnvVar{{Name: "hello"}, {Name: "hello2"}}, []string{}, []v1.EnvVar{{Name: "TILLER_NAMESPACE", Value: "kube-system"}, {Name: "hello"}, {Name: "hello2"}}},
+		{"add new env vars and change existing env var", []v1.EnvVar{{Name: "TILLER_NAMESPACE", Value: "kube-system"}}, []v1.EnvVar{{Name: "hello"}, {Name: "TILLER_NAMESPACE", Value: "new-system"}}, []string{}, []v1.EnvVar{{Name: "TILLER_NAMESPACE", Value: "new-system"}, {Name: "hello"}}},
+		{"remove env var during update", []v1.EnvVar{{Name: "TILLER_NAMESPACE", Value: "kube-system"}, {Name: "toberemoved"}}, []v1.EnvVar{}, []string{"toberemoved"}, []v1.EnvVar{{Name: "TILLER_NAMESPACE", Value: "kube-system"}}},
+		{"change only one env var", []v1.EnvVar{{Name: "TILLER_NAMESPACE", Value: "kube-system"}, {Name: "toberemoved"}}, []v1.EnvVar{{Name: "TILLER_NAMESPACE", Value: "new-system"}}, []string{}, []v1.EnvVar{{Name: "TILLER_NAMESPACE", Value: "new-system"}, {Name: "toberemoved"}}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.scenario, func(t *testing.T) {
+			actualEnvVars := updateEnv(tc.givenExistingEnvVars, tc.givenNewEnvVars, tc.givenRemoveStrings)
+			if !reflect.DeepEqual(tc.expectedEnvVars, actualEnvVars) {
+				t.Errorf("expected envvars to be %v but got %v", tc.expectedEnvVars, actualEnvVars)
+			}
+		})
+	}
+}
+
 func TestInstall(t *testing.T) {
 	image := "gcr.io/kubernetes-helm/tiller:v2.0.0"
 

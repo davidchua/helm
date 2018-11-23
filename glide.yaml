@@ -65,7 +65,12 @@ import:
 
 - package: cloud.google.com/go/compute
   repo: https://github.com/GoogleCloudPlatform/google-cloud-go.git
-
+- package: github.com/sirupsen/logrus
+  version: master
+- package: github.com/Sirupsen/logrus
+  repo: git@github.com:/sirupsen/logrus
+  vcs: git
+  version: master
 testImports:
 - package: github.com/stretchr/testify
   version: ^1.1.4
